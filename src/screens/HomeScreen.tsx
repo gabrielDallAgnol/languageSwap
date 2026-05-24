@@ -12,6 +12,7 @@ interface Props {
   settings: Settings;
   onStart: () => void;
   onOpenSettings: () => void;
+  onBrowse: () => void;
 }
 
 const directionLabel = (settings: Settings) => {
@@ -28,6 +29,7 @@ export function HomeScreen({
   settings,
   onStart,
   onOpenSettings,
+  onBrowse,
 }: Props) {
   return (
     <SafeAreaView style={styles.container}>
@@ -54,7 +56,9 @@ export function HomeScreen({
         <Stat value={newWords} label="New" />
         <Stat value={learned} label="Learned" />
       </View>
-      <Text style={styles.totalLine}>{totalWords} words in the deck</Text>
+      <Pressable onPress={onBrowse} hitSlop={8}>
+        <Text style={styles.totalLine}>Browse all {totalWords} words →</Text>
+      </Pressable>
 
       <View style={styles.spacer} />
 

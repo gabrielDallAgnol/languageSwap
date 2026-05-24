@@ -13,6 +13,7 @@ interface Props {
   promptIsGerman: boolean;
   caption: string;
   locked: boolean;
+  highlight?: 'correct' | 'wrong' | null;
   onChoose: (choseLeft: boolean) => void;
   onLeanChange: (lean: number) => void;
   onSpeak?: () => void;
@@ -23,6 +24,7 @@ export function SwipeCard({
   promptIsGerman,
   caption,
   locked,
+  highlight,
   onChoose,
   onLeanChange,
   onSpeak,
@@ -88,11 +90,15 @@ export function SwipeCard({
     outputRange: ['-14deg', '0deg', '14deg'],
   });
 
+  const highlightBorder =
+    highlight === 'correct' ? theme.correct : highlight === 'wrong' ? theme.wrong : undefined;
+
   return (
     <Animated.View
       {...responder.panHandlers}
       style={[
         styles.card,
+        highlightBorder ? { borderColor: highlightBorder, borderWidth: 2 } : null,
         { transform: [{ translateX: pan.x }, { translateY: pan.y }, { rotate }] },
       ]}
     >

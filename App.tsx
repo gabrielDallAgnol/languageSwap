@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, StatusBar, StyleSheet, View } from 'react-native';
 import { WORDS } from './src/data/words';
 import { dueCount, learnedCount, newCount, recordAnswer, registerActivity } from './src/game/logic';
+import { BrowseScreen } from './src/screens/BrowseScreen';
 import { GameScreen } from './src/screens/GameScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
@@ -16,7 +17,7 @@ import {
 import { theme } from './src/theme';
 import { DEFAULT_SETTINGS, DEFAULT_STATS, ProgressMap, Settings, Stats } from './src/types';
 
-type Screen = 'home' | 'game' | 'settings';
+type Screen = 'home' | 'game' | 'settings' | 'browse';
 
 export default function App() {
   const [loaded, setLoaded] = useState(false);
@@ -93,7 +94,11 @@ export default function App() {
           settings={settings}
           onStart={() => setScreen('game')}
           onOpenSettings={() => setScreen('settings')}
+          onBrowse={() => setScreen('browse')}
         />
+      )}
+      {screen === 'browse' && (
+        <BrowseScreen words={WORDS} progress={progress} onBack={() => setScreen('home')} />
       )}
       {screen === 'game' && (
         <GameScreen

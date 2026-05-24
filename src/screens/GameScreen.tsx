@@ -216,6 +216,7 @@ export function GameScreen({ words, settings, progress, onAnswer, onExit }: Prop
           promptIsGerman={promptIsGerman}
           caption={promptIsGerman ? 'German' : labelFor(settings)}
           locked={reveal !== null}
+          highlight={reveal ? (reveal.correct ? 'correct' : 'wrong') : null}
           onChoose={choose}
           onLeanChange={setLean}
           onSpeak={() => speakGerman(round.german)}
@@ -235,6 +236,8 @@ export function GameScreen({ words, settings, progress, onAnswer, onExit }: Prop
           {renderOption(true)}
           {renderOption(false)}
         </View>
+
+        <Text style={styles.footerHint}>Swipe the word toward an answer, or tap it to listen</Text>
       </View>
     </SafeAreaView>
   );
@@ -272,6 +275,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   optionText: { color: theme.text, fontSize: 20, fontWeight: '600', textAlign: 'center' },
+  footerHint: { color: theme.textMuted, fontSize: 13, textAlign: 'center', marginTop: 22 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
   message: { color: theme.text, fontSize: 18, textAlign: 'center', marginBottom: 24 },
   resultsTitle: { color: theme.textMuted, fontSize: 18, marginBottom: 8 },
