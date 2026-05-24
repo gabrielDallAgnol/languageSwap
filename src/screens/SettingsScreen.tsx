@@ -12,13 +12,17 @@ interface Props {
 }
 
 const MIN_SESSION = 5;
+const MAX_SESSION = 50;
 const STEP = 5;
 
 export function SettingsScreen({ settings, maxWords, onChange, onResetProgress, onBack }: Props) {
   const setLanguage = (targetLanguage: TargetLanguage) => onChange({ ...settings, targetLanguage });
   const setDirection = (direction: QuizDirection) => onChange({ ...settings, direction });
   const setLength = (sessionLength: number) =>
-    onChange({ ...settings, sessionLength: clamp(sessionLength, MIN_SESSION, maxWords) });
+    onChange({
+      ...settings,
+      sessionLength: clamp(sessionLength, MIN_SESSION, Math.min(MAX_SESSION, maxWords)),
+    });
   const setAutoSpeak = (autoSpeak: boolean) => onChange({ ...settings, autoSpeak });
 
   const target = settings.targetLanguage === 'english' ? 'EN' : 'PT-BR';
