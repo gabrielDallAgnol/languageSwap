@@ -1,13 +1,20 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, StatusBar, StyleSheet, View } from 'react-native';
 import { WORDS } from './src/data/words';
-import { learnedCount, recordAnswer } from './src/game/logic';
+import { dueCount, learnedCount, newCount, recordAnswer, registerActivity } from './src/game/logic';
 import { GameScreen } from './src/screens/GameScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
-import { loadProgress, loadSettings, saveProgress, saveSettings } from './src/storage/store';
+import {
+  loadProgress,
+  loadSettings,
+  loadStats,
+  saveProgress,
+  saveSettings,
+  saveStats,
+} from './src/storage/store';
 import { theme } from './src/theme';
-import { DEFAULT_SETTINGS, ProgressMap, Settings } from './src/types';
+import { DEFAULT_SETTINGS, DEFAULT_STATS, ProgressMap, Settings, Stats } from './src/types';
 
 type Screen = 'home' | 'game' | 'settings';
 
@@ -15,13 +22,19 @@ export default function App() {
   const [loaded, setLoaded] = useState(false);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [progress, setProgress] = useState<ProgressMap>({});
+  const [stats, setStats] = useState<Stats>(DEFAULT_STATS);
   const [screen, setScreen] = useState<Screen>('home');
 
   useEffect(() => {
     (async () => {
-      const [loadedSettings, loadedProgress] = await Promise.all([loadSettings(), loadProgress()]);
+      const [loadedSettings, loadedProgress, loadedStats] = await Promise.all([
+        loadSettings(),
+        loadProgress(),
+        loadStats(),
+      ]);
       setSettings(loadedSettings);
       setProgress(loadedProgress);
+      setStats(loadedStats);
       setLoaded(true);
     })();
   }, []);
@@ -31,10 +44,15 @@ export default function App() {
     void saveSettings(next);
   };
 
-  const handleRecord = (wordId: number, correct: boolean) => {
+  const handleAnswer = (wordId: number, correct: boolean) => {
     setProgress((prev) => {
       const next = recordAnswer(prev, wordId, correct);
       void saveProgress(next);
+      return next;
+    });
+    setStats((prev) => {
+      const next = registerActivity(prev);
+      void saveStats(next);
       return next;
     });
   };
@@ -44,7 +62,14 @@ export default function App() {
     void saveProgress({});
   };
 
-  const learned = useMemo(() => learnedCount(progress), [progress]);
+  const counts = useMemo(
+    () => ({
+      learned: learnedCount(progress),
+      due: dueCount(progress),
+      newWords: newCount(WORDS, progress),
+    }),
+    [progress],
+  );
 
   if (!loaded) {
     return (
@@ -61,7 +86,10 @@ export default function App() {
       {screen === 'home' && (
         <HomeScreen
           totalWords={WORDS.length}
-          learned={learned}
+          learned={counts.learned}
+          due={counts.due}
+          newWords={counts.newWords}
+          dayStreak={stats.dayStreak}
           settings={settings}
           onStart={() => setScreen('game')}
           onOpenSettings={() => setScreen('settings')}
@@ -72,7 +100,7 @@ export default function App() {
           words={WORDS}
           settings={settings}
           progress={progress}
-          onRecord={handleRecord}
+          onAnswer={handleAnswer}
           onExit={() => setScreen('home')}
         />
       )}

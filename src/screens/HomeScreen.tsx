@@ -6,6 +6,9 @@ import { Settings } from '../types';
 interface Props {
   totalWords: number;
   learned: number;
+  due: number;
+  newWords: number;
+  dayStreak: number;
   settings: Settings;
   onStart: () => void;
   onOpenSettings: () => void;
@@ -16,8 +19,16 @@ const directionLabel = (settings: Settings) => {
   return settings.direction === 'germanToTarget' ? `DE → ${target}` : `${target} → DE`;
 };
 
-export function HomeScreen({ totalWords, learned, settings, onStart, onOpenSettings }: Props) {
-  const remaining = Math.max(0, totalWords - learned);
+export function HomeScreen({
+  totalWords,
+  learned,
+  due,
+  newWords,
+  dayStreak,
+  settings,
+  onStart,
+  onOpenSettings,
+}: Props) {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -30,30 +41,42 @@ export function HomeScreen({ totalWords, learned, settings, onStart, onOpenSetti
         </Pressable>
       </View>
 
+      {dayStreak > 0 && (
+        <View style={styles.streakBadge}>
+          <Text style={styles.streakText}>
+            {dayStreak}-day streak · keep it going
+          </Text>
+        </View>
+      )}
+
       <View style={styles.statsRow}>
+        <Stat value={due} label="Due" highlight={due > 0} />
+        <Stat value={newWords} label="New" />
         <Stat value={learned} label="Learned" />
-        <Stat value={remaining} label="To go" />
-        <Stat value={totalWords} label="Total" />
       </View>
+      <Text style={styles.totalLine}>{totalWords} words in the deck</Text>
 
       <View style={styles.spacer} />
 
       <Text style={styles.blurb}>
-        See a word, swipe it toward the correct meaning. Mastered words show up less often.
+        See a word, swipe it toward the correct meaning. Words you miss come back sooner; mastered
+        words fade out.
       </Text>
 
       <Pressable style={styles.start} onPress={onStart}>
         <Text style={styles.startText}>Start a session</Text>
-        <Text style={styles.startSub}>{settings.sessionLength} cards</Text>
+        <Text style={styles.startSub}>
+          {settings.sessionLength} cards{due > 0 ? ` · ${due} due` : ''}
+        </Text>
       </Pressable>
     </SafeAreaView>
   );
 }
 
-function Stat({ value, label }: { value: number; label: string }) {
+function Stat({ value, label, highlight }: { value: number; label: string; highlight?: boolean }) {
   return (
-    <View style={styles.stat}>
-      <Text style={styles.statValue}>{value}</Text>
+    <View style={[styles.stat, highlight && styles.statHighlight]}>
+      <Text style={[styles.statValue, highlight && styles.statValueHighlight]}>{value}</Text>
       <Text style={styles.statLabel}>{label}</Text>
     </View>
   );
@@ -65,7 +88,16 @@ const styles = StyleSheet.create({
   title: { color: theme.text, fontSize: 32, fontWeight: '800' },
   subtitle: { color: theme.textMuted, fontSize: 15, marginTop: 4 },
   gear: { color: theme.accent, fontSize: 16, fontWeight: '600' },
-  statsRow: { flexDirection: 'row', gap: 12, marginTop: 32 },
+  streakBadge: {
+    marginTop: 20,
+    alignSelf: 'flex-start',
+    backgroundColor: theme.accentSoft,
+    borderRadius: 999,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  streakText: { color: theme.accent, fontSize: 14, fontWeight: '700' },
+  statsRow: { flexDirection: 'row', gap: 12, marginTop: 20 },
   stat: {
     flex: 1,
     backgroundColor: theme.card,
@@ -75,8 +107,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.border,
   },
+  statHighlight: { borderColor: theme.accent, backgroundColor: theme.accentSoft },
   statValue: { color: theme.text, fontSize: 30, fontWeight: '800' },
+  statValueHighlight: { color: theme.accent },
   statLabel: { color: theme.textMuted, fontSize: 13, marginTop: 4 },
+  totalLine: { color: theme.textMuted, fontSize: 13, marginTop: 12, textAlign: 'center' },
   spacer: { flex: 1 },
   blurb: { color: theme.textMuted, fontSize: 16, lineHeight: 23, marginBottom: 20 },
   start: {

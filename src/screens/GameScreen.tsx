@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { hapticResult, speakGerman } from '../audio';
+import { GermanText } from '../components/GermanText';
 import { ProgressBar } from '../components/ProgressBar';
 import { SwipeCard } from '../components/SwipeCard';
-import { buildRounds } from '../game/logic';
+import { buildRounds, makeRound } from '../game/logic';
 import { theme } from '../theme';
 import { ProgressMap, Round, Settings, Word } from '../types';
 
@@ -10,7 +12,7 @@ interface Props {
   words: Word[];
   settings: Settings;
   progress: ProgressMap;
-  onRecord: (wordId: number, correct: boolean) => void;
+  onAnswer: (wordId: number, correct: boolean) => void;
   onExit: () => void;
 }
 
@@ -19,9 +21,9 @@ interface Reveal {
   correct: boolean;
 }
 
-const REVEAL_MS = 900;
+const REVEAL_MS = 950;
 
-export function GameScreen({ words, settings, progress, onRecord, onExit }: Props) {
+export function GameScreen({ words, settings, progress, onAnswer, onExit }: Props) {
   const [rounds, setRounds] = useState<Round[]>(() => buildRounds(words, settings, progress));
   const [index, setIndex] = useState(0);
   const [score, setScore] = useState(0);
@@ -30,17 +32,27 @@ export function GameScreen({ words, settings, progress, onRecord, onExit }: Prop
   const [lean, setLean] = useState(0);
   const [reveal, setReveal] = useState<Reveal | null>(null);
   const [finished, setFinished] = useState(false);
+  const [missed, setMissed] = useState<number[]>([]);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const round = rounds[index];
+  const promptIsGerman = settings.direction === 'germanToTarget';
 
   useEffect(() => () => {
     if (timer.current) clearTimeout(timer.current);
   }, []);
 
-  const round = rounds[index];
+  // Auto-speak the German word when a new prompt appears (forward direction only).
+  useEffect(() => {
+    if (!finished && round && settings.autoSpeak && promptIsGerman) {
+      speakGerman(round.german);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [index, rounds, finished]);
 
-  const restart = useCallback(() => {
+  const resetSession = (next: Round[]) => {
     if (timer.current) clearTimeout(timer.current);
-    setRounds(buildRounds(words, settings, progress));
+    setRounds(next);
     setIndex(0);
     setScore(0);
     setStreak(0);
@@ -48,13 +60,26 @@ export function GameScreen({ words, settings, progress, onRecord, onExit }: Prop
     setLean(0);
     setReveal(null);
     setFinished(false);
+    setMissed([]);
+  };
+
+  const restart = useCallback(() => {
+    resetSession(buildRounds(words, settings, progress));
   }, [words, settings, progress]);
+
+  const reviewMistakes = useCallback(() => {
+    const missedWords = words.filter((w) => missed.includes(w.id));
+    if (missedWords.length === 0) return;
+    resetSession(missedWords.map((w) => makeRound(w, words, settings)));
+  }, [missed, words, settings]);
 
   const choose = useCallback(
     (choseLeft: boolean) => {
       if (reveal || !round) return;
       const correct = choseLeft === round.correctIsLeft;
-      onRecord(round.wordId, correct);
+      onAnswer(round.wordId, correct);
+      hapticResult(correct);
+      if (settings.autoSpeak && !promptIsGerman) speakGerman(round.german);
       setReveal({ choseLeft, correct });
       setLean(choseLeft ? -1 : 1);
       if (correct) {
@@ -66,6 +91,7 @@ export function GameScreen({ words, settings, progress, onRecord, onExit }: Prop
         });
       } else {
         setStreak(0);
+        setMissed((m) => (m.includes(round.wordId) ? m : [...m, round.wordId]));
       }
       timer.current = setTimeout(() => {
         if (index >= rounds.length - 1) {
@@ -77,7 +103,7 @@ export function GameScreen({ words, settings, progress, onRecord, onExit }: Prop
         }
       }, REVEAL_MS);
     },
-    [reveal, round, index, rounds.length, onRecord],
+    [reveal, round, index, rounds.length, onAnswer, settings.autoSpeak, promptIsGerman],
   );
 
   if (rounds.length === 0) {
@@ -105,8 +131,20 @@ export function GameScreen({ words, settings, progress, onRecord, onExit }: Prop
           </Text>
           <Text style={styles.resultsDetail}>{pct}% correct</Text>
           <Text style={styles.resultsDetail}>Best streak: {best}</Text>
-          <Pressable style={styles.primaryButton} onPress={restart}>
-            <Text style={styles.primaryButtonText}>Play again</Text>
+          {missed.length > 0 && (
+            <Pressable style={styles.primaryButton} onPress={reviewMistakes}>
+              <Text style={styles.primaryButtonText}>
+                Review {missed.length} {missed.length === 1 ? 'mistake' : 'mistakes'}
+              </Text>
+            </Pressable>
+          )}
+          <Pressable
+            style={missed.length > 0 ? styles.outlineButton : styles.primaryButton}
+            onPress={restart}
+          >
+            <Text style={missed.length > 0 ? styles.outlineButtonText : styles.primaryButtonText}>
+              New session
+            </Text>
           </Pressable>
           <Pressable style={styles.secondaryButton} onPress={onExit}>
             <Text style={styles.secondaryButtonText}>Home</Text>
@@ -144,9 +182,13 @@ export function GameScreen({ words, settings, progress, onRecord, onExit }: Prop
         accessibilityRole="button"
         accessibilityLabel={label}
       >
-        <Text style={styles.optionText} adjustsFontSizeToFit numberOfLines={3}>
-          {label}
-        </Text>
+        {round.optionsAreGerman ? (
+          <GermanText text={label} style={styles.optionText} color={theme.text} numberOfLines={3} />
+        ) : (
+          <Text style={styles.optionText} adjustsFontSizeToFit numberOfLines={3}>
+            {label}
+          </Text>
+        )}
       </Pressable>
     );
   };
@@ -171,10 +213,12 @@ export function GameScreen({ words, settings, progress, onRecord, onExit }: Prop
         <SwipeCard
           key={`${round.wordId}-${index}`}
           prompt={round.prompt}
-          caption={settings.direction === 'germanToTarget' ? 'German' : labelFor(settings)}
+          promptIsGerman={promptIsGerman}
+          caption={promptIsGerman ? 'German' : labelFor(settings)}
           locked={reveal !== null}
           onChoose={choose}
           onLeanChange={setLean}
+          onSpeak={() => speakGerman(round.german)}
         />
 
         <View style={styles.feedbackWrap}>
@@ -238,9 +282,22 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 40,
     borderRadius: 16,
-    marginTop: 28,
+    marginTop: 20,
+    minWidth: 240,
+    alignItems: 'center',
   },
   primaryButtonText: { color: '#fff', fontSize: 18, fontWeight: '700' },
+  outlineButton: {
+    paddingVertical: 16,
+    paddingHorizontal: 40,
+    borderRadius: 16,
+    marginTop: 12,
+    minWidth: 240,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: theme.accent,
+  },
+  outlineButtonText: { color: theme.accent, fontSize: 18, fontWeight: '700' },
   secondaryButton: { paddingVertical: 14, paddingHorizontal: 32, marginTop: 10 },
   secondaryButtonText: { color: theme.textMuted, fontSize: 16, fontWeight: '600' },
 });

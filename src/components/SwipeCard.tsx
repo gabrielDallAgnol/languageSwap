@@ -1,30 +1,44 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, Dimensions, PanResponder, StyleSheet, Text, View } from 'react-native';
+import { Animated, Dimensions, PanResponder, Pressable, StyleSheet, Text, View } from 'react-native';
 import { theme } from '../theme';
+import { GermanText } from './GermanText';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.24;
 const LEAN_THRESHOLD = 24;
+const TAP_THRESHOLD = 8;
 
 interface Props {
   prompt: string;
+  promptIsGerman: boolean;
   caption: string;
   locked: boolean;
   onChoose: (choseLeft: boolean) => void;
   onLeanChange: (lean: number) => void;
+  onSpeak?: () => void;
 }
 
-export function SwipeCard({ prompt, caption, locked, onChoose, onLeanChange }: Props) {
+export function SwipeCard({
+  prompt,
+  promptIsGerman,
+  caption,
+  locked,
+  onChoose,
+  onLeanChange,
+  onSpeak,
+}: Props) {
   const pan = useRef(new Animated.ValueXY()).current;
 
   // Keep the latest props available to the (stable) PanResponder closures.
   const lockedRef = useRef(locked);
   const onChooseRef = useRef(onChoose);
   const onLeanRef = useRef(onLeanChange);
+  const onSpeakRef = useRef(onSpeak);
   useEffect(() => {
     lockedRef.current = locked;
     onChooseRef.current = onChoose;
     onLeanRef.current = onLeanChange;
+    onSpeakRef.current = onSpeak;
   });
 
   const springBack = () =>
@@ -37,6 +51,7 @@ export function SwipeCard({ prompt, caption, locked, onChoose, onLeanChange }: P
 
   const responder = useRef(
     PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: (_, g) =>
         !lockedRef.current && Math.abs(g.dx) > 4 && Math.abs(g.dx) > Math.abs(g.dy),
       onPanResponderMove: (_, g) => {
@@ -45,6 +60,11 @@ export function SwipeCard({ prompt, caption, locked, onChoose, onLeanChange }: P
         onLeanRef.current(g.dx < -LEAN_THRESHOLD ? -1 : g.dx > LEAN_THRESHOLD ? 1 : 0);
       },
       onPanResponderRelease: (_, g) => {
+        const isTap = Math.abs(g.dx) < TAP_THRESHOLD && Math.abs(g.dy) < TAP_THRESHOLD;
+        if (isTap) {
+          onSpeakRef.current?.();
+          return;
+        }
         if (lockedRef.current) return;
         if (Math.abs(g.dx) > SWIPE_THRESHOLD) {
           const choseLeft = g.dx < 0;
@@ -77,10 +97,25 @@ export function SwipeCard({ prompt, caption, locked, onChoose, onLeanChange }: P
       ]}
     >
       <Text style={styles.caption}>{caption}</Text>
-      <Text style={styles.prompt} adjustsFontSizeToFit numberOfLines={2}>
-        {prompt}
-      </Text>
-      <Text style={styles.hint}>Swipe toward the meaning</Text>
+      {promptIsGerman ? (
+        <GermanText text={prompt} style={styles.prompt} color={theme.text} numberOfLines={2} />
+      ) : (
+        <Text style={styles.prompt} adjustsFontSizeToFit numberOfLines={2}>
+          {prompt}
+        </Text>
+      )}
+      {onSpeak ? (
+        <Pressable
+          style={styles.listen}
+          onPress={() => onSpeak()}
+          accessibilityRole="button"
+          accessibilityLabel="Hear pronunciation"
+        >
+          <Text style={styles.listenText}>Listen</Text>
+        </Pressable>
+      ) : (
+        <View style={styles.spacer} />
+      )}
     </Animated.View>
   );
 }
@@ -89,7 +124,7 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: theme.card,
     borderRadius: 28,
-    paddingVertical: 44,
+    paddingVertical: 40,
     paddingHorizontal: 24,
     alignItems: 'center',
     justifyContent: 'center',
@@ -114,9 +149,15 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textAlign: 'center',
   },
-  hint: {
-    color: theme.textMuted,
-    fontSize: 13,
+  listen: {
     marginTop: 18,
+    paddingVertical: 8,
+    paddingHorizontal: 18,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: theme.border,
+    backgroundColor: theme.cardMuted,
   },
+  listenText: { color: theme.textMuted, fontSize: 14, fontWeight: '600' },
+  spacer: { height: 18 },
 });

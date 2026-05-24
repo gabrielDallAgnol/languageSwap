@@ -1,5 +1,5 @@
 import React from 'react';
-import { Alert, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, SafeAreaView, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { theme } from '../theme';
 import { QuizDirection, Settings, TargetLanguage } from '../types';
 
@@ -19,6 +19,7 @@ export function SettingsScreen({ settings, maxWords, onChange, onResetProgress, 
   const setDirection = (direction: QuizDirection) => onChange({ ...settings, direction });
   const setLength = (sessionLength: number) =>
     onChange({ ...settings, sessionLength: clamp(sessionLength, MIN_SESSION, maxWords) });
+  const setAutoSpeak = (autoSpeak: boolean) => onChange({ ...settings, autoSpeak });
 
   const target = settings.targetLanguage === 'english' ? 'EN' : 'PT-BR';
 
@@ -75,6 +76,25 @@ export function SettingsScreen({ settings, maxWords, onChange, onResetProgress, 
             <Text style={styles.stepButtonText}>+</Text>
           </Pressable>
         </View>
+
+        <Text style={styles.section}>Audio</Text>
+        <View style={styles.toggleRow}>
+          <Text style={styles.toggleLabel}>Pronounce German words aloud</Text>
+          <Switch
+            value={settings.autoSpeak}
+            onValueChange={setAutoSpeak}
+            trackColor={{ true: theme.accent, false: theme.border }}
+            thumbColor="#fff"
+          />
+        </View>
+
+        <Text style={styles.section}>Article colours</Text>
+        <View style={styles.legend}>
+          <Text style={[styles.legendItem, { color: theme.der }]}>der</Text>
+          <Text style={[styles.legendItem, { color: theme.die }]}>die</Text>
+          <Text style={[styles.legendItem, { color: theme.das }]}>das</Text>
+        </View>
+        <Text style={styles.legendHint}>Noun articles are colour-coded by gender to help you remember them.</Text>
 
         <Pressable style={styles.reset} onPress={confirmReset}>
           <Text style={styles.resetText}>Reset progress</Text>
@@ -165,8 +185,23 @@ const styles = StyleSheet.create({
   stepButton: { width: 56, height: 56, alignItems: 'center', justifyContent: 'center' },
   stepButtonText: { color: theme.accent, fontSize: 30, fontWeight: '700' },
   stepValue: { color: theme.text, fontSize: 22, fontWeight: '700' },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: theme.card,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: theme.border,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  toggleLabel: { color: theme.text, fontSize: 16, flex: 1, marginRight: 12 },
+  legend: { flexDirection: 'row', gap: 20 },
+  legendItem: { fontSize: 22, fontWeight: '800' },
+  legendHint: { color: theme.textMuted, fontSize: 13, marginTop: 8, lineHeight: 19 },
   reset: {
-    marginTop: 48,
+    marginTop: 40,
     paddingVertical: 16,
     borderRadius: 14,
     borderWidth: 1,

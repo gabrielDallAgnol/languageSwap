@@ -1,8 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { DEFAULT_SETTINGS, ProgressMap, Settings } from '../types';
+import { DEFAULT_SETTINGS, DEFAULT_STATS, ProgressMap, Settings, Stats } from '../types';
 
-const PROGRESS_KEY = 'languageswap.progress.v1';
+const PROGRESS_KEY = 'languageswap.progress.v2';
 const SETTINGS_KEY = 'languageswap.settings.v1';
+const STATS_KEY = 'languageswap.stats.v1';
 
 export async function loadProgress(): Promise<ProgressMap> {
   try {
@@ -34,6 +35,24 @@ export async function loadSettings(): Promise<Settings> {
 export async function saveSettings(settings: Settings): Promise<void> {
   try {
     await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  } catch {
+    // Ignore write failures.
+  }
+}
+
+export async function loadStats(): Promise<Stats> {
+  try {
+    const raw = await AsyncStorage.getItem(STATS_KEY);
+    if (!raw) return DEFAULT_STATS;
+    return { ...DEFAULT_STATS, ...(JSON.parse(raw) as Partial<Stats>) };
+  } catch {
+    return DEFAULT_STATS;
+  }
+}
+
+export async function saveStats(stats: Stats): Promise<void> {
+  try {
+    await AsyncStorage.setItem(STATS_KEY, JSON.stringify(stats));
   } catch {
     // Ignore write failures.
   }
