@@ -201,6 +201,11 @@ describe('data integrity', () => {
   });
 
   it('has a substantial deck', () => {
-    expect(WORDS.length).toBeGreaterThanOrEqual(300);
+    expect(WORDS.length).toBeGreaterThanOrEqual(500);
+  });
+
+  it('has no duplicate German entries', () => {
+    const displays = WORDS.map((w) => `${germanDisplay(w)}|${w.pos}`);
+    expect(new Set(displays).size).toBe(displays.length);
   });
 });
