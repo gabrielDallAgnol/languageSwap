@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, StatusBar, StyleSheet, View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { WORDS } from './src/data/words';
 import { dueCount, learnedCount, newCount, recordAnswer, registerActivity } from './src/game/logic';
 import { BrowseScreen } from './src/screens/BrowseScreen';
@@ -82,15 +83,17 @@ export default function App() {
   }
 
   return (
-    <View style={styles.root}>
-      <StatusBar barStyle="light-content" />
-      {screen === 'home' && (
+    <SafeAreaProvider>
+      <View style={styles.root}>
+        <StatusBar barStyle="light-content" />
+        {screen === 'home' && (
         <HomeScreen
           totalWords={WORDS.length}
           learned={counts.learned}
           due={counts.due}
           newWords={counts.newWords}
           dayStreak={stats.dayStreak}
+          totalAnswered={stats.totalAnswered}
           settings={settings}
           onStart={() => setScreen('game')}
           onOpenSettings={() => setScreen('settings')}
@@ -117,8 +120,9 @@ export default function App() {
           onResetProgress={resetProgress}
           onBack={() => setScreen('home')}
         />
-      )}
-    </View>
+        )}
+      </View>
+    </SafeAreaProvider>
   );
 }
 

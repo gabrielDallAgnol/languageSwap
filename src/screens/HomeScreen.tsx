@@ -1,5 +1,7 @@
 import React from 'react';
-import { Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { ProgressBar } from '../components/ProgressBar';
 import { theme } from '../theme';
 import { Settings } from '../types';
 
@@ -9,6 +11,7 @@ interface Props {
   due: number;
   newWords: number;
   dayStreak: number;
+  totalAnswered: number;
   settings: Settings;
   onStart: () => void;
   onOpenSettings: () => void;
@@ -26,11 +29,13 @@ export function HomeScreen({
   due,
   newWords,
   dayStreak,
+  totalAnswered,
   settings,
   onStart,
   onOpenSettings,
   onBrowse,
 }: Props) {
+  const masteryFraction = totalWords > 0 ? learned / totalWords : 0;
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -60,7 +65,22 @@ export function HomeScreen({
         <Text style={styles.totalLine}>Browse all {totalWords} words →</Text>
       </Pressable>
 
-      <View style={styles.spacer} />
+      <View style={styles.middle}>
+        <View style={styles.masteryCard}>
+          <View style={styles.masteryHeader}>
+            <Text style={styles.masteryLabel}>Mastery</Text>
+            <Text style={styles.masteryCount}>
+              {learned} / {totalWords}
+            </Text>
+          </View>
+          <ProgressBar fraction={masteryFraction} />
+          <Text style={styles.masterySub}>
+            {totalAnswered > 0
+              ? `${totalAnswered} ${totalAnswered === 1 ? 'card' : 'cards'} answered all-time`
+              : 'Answer cards to start mastering the deck'}
+          </Text>
+        </View>
+      </View>
 
       <Text style={styles.blurb}>
         See a word, swipe it toward the correct meaning. Words you miss come back sooner; mastered
@@ -116,7 +136,28 @@ const styles = StyleSheet.create({
   statValueHighlight: { color: theme.accent },
   statLabel: { color: theme.textMuted, fontSize: 13, marginTop: 4 },
   totalLine: { color: theme.textMuted, fontSize: 13, marginTop: 12, textAlign: 'center' },
-  spacer: { flex: 1 },
+  middle: { flex: 1, justifyContent: 'center' },
+  masteryCard: {
+    backgroundColor: theme.card,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: theme.border,
+    padding: 20,
+  },
+  masteryHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    marginBottom: 12,
+  },
+  masteryLabel: {
+    color: theme.textMuted,
+    fontSize: 13,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  masteryCount: { color: theme.text, fontSize: 16, fontWeight: '700' },
+  masterySub: { color: theme.textMuted, fontSize: 13, marginTop: 10 },
   blurb: { color: theme.textMuted, fontSize: 16, lineHeight: 23, marginBottom: 20 },
   start: {
     backgroundColor: theme.accent,

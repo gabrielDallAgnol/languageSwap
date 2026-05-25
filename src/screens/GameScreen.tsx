@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { hapticResult, speakGerman } from '../audio';
 import { GermanText } from '../components/GermanText';
 import { ProgressBar } from '../components/ProgressBar';
@@ -219,7 +220,9 @@ export function GameScreen({ words, settings, progress, onAnswer, onExit }: Prop
           highlight={reveal ? (reveal.correct ? 'correct' : 'wrong') : null}
           onChoose={choose}
           onLeanChange={setLean}
-          onSpeak={() => speakGerman(round.german)}
+          // In reverse mode the German word is the answer, so only allow hearing
+          // it once the round has been revealed — never before the user chooses.
+          onSpeak={promptIsGerman || reveal ? () => speakGerman(round.german) : undefined}
         />
 
         <View style={styles.feedbackWrap}>
@@ -237,7 +240,11 @@ export function GameScreen({ words, settings, progress, onAnswer, onExit }: Prop
           {renderOption(false)}
         </View>
 
-        <Text style={styles.footerHint}>Swipe the word toward an answer, or tap it to listen</Text>
+        <Text style={styles.footerHint}>
+          {promptIsGerman
+            ? 'Tap an answer, or swipe the card toward it · tap the word to hear it'
+            : 'Tap an answer, or swipe the card toward it'}
+        </Text>
       </View>
     </SafeAreaView>
   );
@@ -303,5 +310,5 @@ const styles = StyleSheet.create({
   },
   outlineButtonText: { color: theme.accent, fontSize: 18, fontWeight: '700' },
   secondaryButton: { paddingVertical: 14, paddingHorizontal: 32, marginTop: 10 },
-  secondaryButtonText: { color: theme.textMuted, fontSize: 16, fontWeight: '600' },
+  secondaryButtonText: { color: theme.text, fontSize: 16, fontWeight: '600' },
 });

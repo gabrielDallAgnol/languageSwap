@@ -97,7 +97,11 @@ export function SwipeCard({
     <Animated.View
       {...responder.panHandlers}
       accessible
-      accessibilityLabel={`${prompt}. Swipe left or right to answer, double tap to hear it.`}
+      accessibilityLabel={
+        onSpeak
+          ? `${prompt}. Swipe left or right to answer, double tap to hear it.`
+          : `${prompt}. Swipe left or right to answer.`
+      }
       style={[
         styles.card,
         highlightBorder ? { borderColor: highlightBorder, borderWidth: 2 } : null,
